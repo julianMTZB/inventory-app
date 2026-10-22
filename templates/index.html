@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Inventario{% endblock %}
+{% block content %}
+  <h1>Inventario</h1>
+
+  {% if products %}
+    <p class="summary">
+      {{ summary.count }} {{ 'producto' if summary.count == 1 else 'productos' }},
+      {{ summary.units | num }} {{ 'unidad' if summary.units == 1 else 'unidades' }} en existencia,
+      valor del inventario {{ summary.value | money }}.
+    </p>
+
+    <div class="toolbar">
+      <label class="field grow" for="search">
+        <span>Buscar por nombre o SKU</span>
+        <input id="search" type="search" autocomplete="off">
+      </label>
+      <a class="button" href="{{ url_for('new_product') }}">Nuevo producto</a>
+    </div>
+
+    <div class="table-scroll">
+      <table id="products">
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Producto</th>
+            <th scope="col" class="right">Precio</th>
+            <th scope="col" class="right">Existencias</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+            <tr data-search="{{ p.sku }} {{ p.name | lower }}">
+              <td>{{ p.sku }}</td>
+              <td><a href="{{ url_for('product_detail', sku=p.sku) }}">{{ p.name }}</a></td>
+              <td class="right">{{ p.price | money }}</td>
+              <td class="right">
+                {% if p.stock == 0 %}<span class="tag tag-empty">Agotado</span>{% endif %}
+                {{ p.stock | num }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p id="no-results" class="empty" hidden>Ningún producto coincide con la búsqueda.</p>
+  {% else %}
+    <p class="empty">Todavía no hay productos en el inventario.</p>
+    <p><a class="button" href="{{ url_for('new_product') }}">Crear el primer producto</a></p>
+  {% endif %}
+{% endblock %}
