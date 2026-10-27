@@ -4,29 +4,21 @@ class InventoryService:
     def __init__(self, repo):
         self.repo = repo
 
-    def create_product(self, name, price, stock):
-        sku = self.repo.next_sku()
+    def create_product(self, sku, name, price, stock):
         product = Product(sku, name, price, stock)
         self.repo.add_product(product)
-        self.repo.save_inventory()
         return sku
 
     def delete_product(self, sku):
-        if self.repo.get_product(sku):
-            self.repo.remove_product(sku)
-            self.repo.save_inventory()
-            return sku
-
-    def find_product_info(self, sku):
-        product = self.repo.get_product(sku)
-        return product.to_dict()
+        self.repo.get_product(sku)
+        self.repo.remove_product(sku)
+        return sku
+          
+    def product_info(self, sku):
+        return self.repo.get_product_info(sku)
 
     def products_info(self):
-        data = []
-        products = self.repo.list_products()
-        for product in products:
-            data.append(product.to_dict())
-        return data
+        return self.repo.list_products()
 
 
         

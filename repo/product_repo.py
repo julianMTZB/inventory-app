@@ -1,52 +1,78 @@
-import os
-import json 
 from models.product import Product
+import sqlite3
 from exceptions import ProductNotFound
 
+"""
+Falta establecer el ciclo de transacciones. 
+(Cerrar las conexiones con la base de datos después de usar
+cada método de la clase) El encargado de cerrar el repo es quien lo crea
+"""
+
 class ProductRepo:
-    def __init__(self, route="inventory.json"):
-        self.route = route
-        self._products = self.load_inventory()
+    def __init__(self, path="product_repo.db"):
+        self.conn = sqlite3.connect(path, check_same_thread=False) #Aquí se crea la conexion
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA foreign_keys = ON")
 
-    def load_inventory(self):
-        products = {}
-        if os.path.exists(self.route):
-            with open(self.route, "r") as f:
-                data = json.load(f)
-            for d in data:
-                product = Product(d["sku"], d["name"], d["price"], d["stock"])
-                products[product.sku] = product       
-        return products
+    def close(self):
+        self.conn.close()
 
-    def save_inventory(self):
-        data = []
-        for product in self._products.values():
-            data.append(product.to_dict())
-        with open(self.route, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+    def __enter__(self):
+        return self
 
-    def next_sku(self):
-        if not self._products:
-            return 1
-        return max(self._products) + 1
+    def __exit__(self, *exc):
+        self.close()
 
-    def add_product(self, product):
-        self._products[product.sku] = product
-
-    def remove_product(self, sku):
-        del self._products[sku]
+    def create_table(self):
+        with self.conn:
+            self.conn.execute("""CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            price REAL CHECK (price > 0),
+            stock INTEGER NOT NULL DEFAULT 0
+            )""")
 
     def get_product(self, sku):
-        if self._products.get(sku) is None:
-            raise ProductNotFound(f"Producto con SKU: '{sku}' no encontrado.")
-        return self._products.get(sku)
+        row = self.conn.execute(
+            "SELECT sku, name, price, stock FROM products WHERE sku = ?", (sku,)
+            ).fetchone()
+        if row:
+            return Product(**dict(row))
+        raise ProductNotFound(f"Producto con SKU: '{sku}' NO encontrado")
 
-    def list_products(self):
-        return list(self._products.values())
+    def get_product_info(self, sku):
+        row = self.conn.execute(
+            "SELECT * FROM products WHERE sku = ?", (sku,)
+            ).fetchone()
+        if row:
+            return dict(row)
+        raise ProductNotFound(f"Producto con SKU: '{sku}' NO encontrado")
+                
+    def add_product(self, product):
+        with self.conn:
+            self.conn.execute("INSERT INTO products (sku, name, price, stock) VALUES (?,?,?,?)",
+                              (product.sku, product.name, product.price, product.stock))
+                       
+    def remove_product(self, sku):
+        with self.conn:
+            self.conn.execute("DELETE FROM products WHERE sku = ?", (sku,))
 
+    def update_product(self, product: Product):
+        with self.conn:
+            self.conn.execute(
+                "UPDATE products SET sku = ?, name = ?, price = ?, stock = ? WHERE sku = ?",
+                (product.sku, product.name, product.price, product.stock, product.sku))
+
+    def list_products(self): #REVISAR
+        rows = self.conn.execute(
+            "SELECT * FROM products ORDER BY name"
+        ).fetchall()     
+        return [dict(row) for row in rows]
+
+
+            
 
     
 
-
     
-        

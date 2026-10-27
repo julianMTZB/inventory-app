@@ -41,14 +41,6 @@ class Product:
     def change_name(self, new_name):
         self.name = new_name
 
-    # -- Convertir objeto a dict
-    def to_dict(self):
-        return {
-            "sku":self.sku,
-            "name":self.name,
-            "price":self.price,
-            "stock":self.stock
-        }
 
 
         
