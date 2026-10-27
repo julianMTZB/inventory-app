@@ -3,19 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <title>{% block title %}Inventario{% endblock %} – StockTracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  {# Íconos (estilo Lucide, trazo 2px). Uso: {{ icon('plus') }} #}
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-package" viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-entry" viewBox="0 0 24 24"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></symbol>
+    <symbol id="i-exit" viewBox="0 0 24 24"><path d="m18 9-6-6-6 6"/><path d="M12 3v14"/><path d="M5 21h14"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+    <symbol id="i-dollar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
+  </svg>
+
   <header class="topbar">
     <div class="wrap">
-      <a class="brand" href="{{ url_for('index') }}">StockTracker<small>v2</small></a>
+      <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">{{ icon('package') }}</span>StockTracker</a>
       <nav aria-label="Principal">
-        <a href="{{ url_for('index') }}" {% if request.endpoint in ('index', 'product_detail') %}aria-current="page"{% endif %}>Inventario</a>
-        <a href="{{ url_for('new_product') }}" {% if request.endpoint == 'new_product' %}aria-current="page"{% endif %}>Nuevo producto</a>
+        <a href="{{ url_for('index') }}" {% if request.endpoint in ('index', 'product_detail') %}aria-current="page"{% endif %}>{{ icon('layers') }}Inventario</a>
+        <a href="{{ url_for('new_product') }}" {% if request.endpoint == 'new_product' %}aria-current="page"{% endif %}>{{ icon('plus') }}Nuevo producto</a>
       </nav>
     </div>
   </header>
@@ -23,7 +42,7 @@
   <main class="wrap">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
-        <p class="flash flash-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+        <p class="flash flash-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ icon('alert' if category == 'error' else 'check') }}<span>{{ message }}</span></p>
       {% endfor %}
     {% endwith %}
     {% block content %}{% endblock %}

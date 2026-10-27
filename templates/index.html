@@ -1,21 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Inventario{% endblock %}
 {% block content %}
-  <h1>Inventario</h1>
+  <section class="hero">
+    <div>
+      <h1>Inventario</h1>
+      <p class="lead">Precio y existencias de cada producto, siempre al día.</p>
+    </div>
+    {% if products %}<div class="hero-art">{% include "_boxes.html" %}</div>{% endif %}
+  </section>
 
   {% if products %}
-    <p class="summary">
-      {{ summary.count }} {{ 'producto' if summary.count == 1 else 'productos' }},
-      {{ summary.units | num }} {{ 'unidad' if summary.units == 1 else 'unidades' }} en existencia,
-      valor del inventario {{ summary.value | money }}.
-    </p>
+    <dl class="ledger">
+      <div>
+        <dt>{{ icon('package') }}{{ 'Producto' if summary.count == 1 else 'Productos' }}</dt>
+        <dd>{{ summary.count | num }}</dd>
+      </div>
+      <div>
+        <dt>{{ icon('layers') }}{{ 'Unidad' if summary.units == 1 else 'Unidades' }} en existencia</dt>
+        <dd>{{ summary.units | num }}</dd>
+      </div>
+      <div>
+        <dt>{{ icon('dollar') }}Valor del inventario</dt>
+        <dd>{{ summary.value | money }}</dd>
+      </div>
+    </dl>
 
     <div class="toolbar">
       <label class="field grow" for="search">
         <span>Buscar por nombre o SKU</span>
-        <input id="search" type="search" autocomplete="off">
+        <span class="input-icon">{{ icon('search') }}<input id="search" type="search" autocomplete="off" placeholder="Escribe para filtrar"></span>
       </label>
-      <a class="button" href="{{ url_for('new_product') }}">Nuevo producto</a>
+      <a class="button" href="{{ url_for('new_product') }}">{{ icon('plus') }}Nuevo producto</a>
     </div>
 
     <div class="table-scroll">
@@ -35,8 +50,11 @@
               <td><a href="{{ url_for('product_detail', sku=p.sku) }}">{{ p.name }}</a></td>
               <td class="right">{{ p.price | money }}</td>
               <td class="right">
-                {% if p.stock == 0 %}<span class="tag tag-empty">Agotado</span>{% endif %}
-                {{ p.stock | num }}
+                <span class="stock-cell">
+                  {% if p.stock == 0 %}<span class="tag tag-empty">Agotado</span>{% endif %}
+                  <span class="meter" data-stock="{{ p.stock }}" aria-hidden="true"><span></span></span>
+                  <span class="stock-num">{{ p.stock | num }}</span>
+                </span>
               </td>
             </tr>
           {% endfor %}
@@ -45,7 +63,13 @@
     </div>
     <p id="no-results" class="empty" hidden>Ningún producto coincide con la búsqueda.</p>
   {% else %}
-    <p class="empty">Todavía no hay productos en el inventario.</p>
-    <p><a class="button" href="{{ url_for('new_product') }}">Crear el primer producto</a></p>
+    <section class="empty-state">
+      <div class="hero-art">{% include "_boxes.html" %}</div>
+      <div>
+        <h2>La bodega está vacía</h2>
+        <p class="lead">Crea tu primer producto para empezar a registrar entradas y salidas.</p>
+        <a class="button" href="{{ url_for('new_product') }}">{{ icon('plus') }}Crear el primer producto</a>
+      </div>
+    </section>
   {% endif %}
 {% endblock %}

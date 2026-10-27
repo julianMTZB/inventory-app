@@ -24,3 +24,12 @@ if (search) {
     noResults.hidden = visible !== 0;
   });
 }
+
+// Barras de existencias: cada una es proporcional al producto con más stock.
+var meters = document.querySelectorAll(".meter[data-stock]");
+var max = 0;
+meters.forEach(function (m) { max = Math.max(max, Number(m.dataset.stock)); });
+meters.forEach(function (m) {
+  var pct = max ? (Number(m.dataset.stock) / max) * 100 : 0;
+  m.style.setProperty("--w", pct + "%");
+});

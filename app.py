@@ -1,9 +1,12 @@
 import math
 import os
+import re
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
-from exceptions import InsufficientStock, NegativePrice, NegativeStock, ProductNotFound
+from markupsafe import Markup
+from exceptions import (InsufficientStock, NegativePrice, 
+                        DuplicateSku, NegativeStock, ProductNotFound)
 from repo.product_repo import ProductRepo
 from services.inventory_service import InventoryService
 from services.product_service import ProductService
@@ -14,14 +17,19 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("STOCKTRACKER_SECRET", "stocktracker-dev")
 
 # Mismas piezas que en test.py: un repo compartido por los dos servicios.
-repo = ProductRepo(os.path.join(BASE_DIR, "inventory.json"))
+repo = ProductRepo(os.path.join(BASE_DIR, "inventory.db"))
+repo.create_table()
 inventory_service = InventoryService(repo)
 product_service = ProductService(repo)
 
 # Todo lo que el backend (o la lectura del formulario) puede lanzar y que
 # queremos mostrarle al usuario como mensaje, no como página de error.
-EXPECTED_ERRORS = (ValueError, NegativePrice, NegativeStock, InsufficientStock, ProductNotFound)
+EXPECTED_ERRORS = (ValueError, NegativePrice, NegativeStock, 
+                   DuplicateSku, InsufficientStock, ProductNotFound)
 
+@app.template_global()
+def icon(name):
+    return Markup(f'<svg class="i" aria-hidden="true"><use href="#i-{name}"/></svg>')
 
 # ---------- Lectura de formularios ----------
 # Los formularios entregan texto. El backend espera números, así que se
@@ -33,6 +41,11 @@ def read_name(raw):
         raise ValueError("El nombre no puede estar vacío.")
     return name
 
+def read_sku(raw):
+    sku = (raw or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,32}", sku):
+        raise ValueError("El SKU solo puede llevar letras, números, punto, guion y guion bajo (máximo 32).")
+    return sku
 
 def read_price(raw):
     try:
@@ -100,16 +113,17 @@ def index():
 
 @app.route("/products/new", methods=["GET", "POST"])
 def new_product():
-    form = {"name": "", "price": "", "stock": "0"}
+    form = {"sku": "","name": "", "price": "", "stock": "0"}
     if request.method == "POST":
         form = {key: request.form.get(key, "") for key in form}
         try:
+            sku = read_sku(form["sku"])
             name = read_name(form["name"])
             price = read_price(form["price"])
             stock = read_int(form["stock"], "El stock inicial")
             if stock < 0:
                 raise NegativeStock("El stock inicial no puede ser negativo.")
-            sku = inventory_service.create_product(name, price, stock)
+            sku = inventory_service.create_product(sku, name, price, stock)
         except EXPECTED_ERRORS as error:
             flash(str(error), "error")
         else:
@@ -118,10 +132,10 @@ def new_product():
     return render_template("new_product.html", form=form)
 
 
-@app.get("/products/<int:sku>")
+@app.get("/products/<sku>")
 def product_detail(sku):
     try:
-        product = inventory_service.find_product_info(sku)
+        product = inventory_service.product_info(sku)
     except ProductNotFound as error:
         flash(str(error), "error")
         return redirect(url_for("index"))
@@ -130,35 +144,35 @@ def product_detail(sku):
 
 # ---------- Acciones (siempre POST, siempre redirigen) ----------
 
-@app.post("/products/<int:sku>/entry")
+@app.post("/products/<sku>/entry")
 def register_entry(sku):
     error = attempt(lambda: product_service.register_entry(
         sku, read_int(request.form.get("quantity"), "La cantidad")))
     return back_to_product(sku, error, "Entrada registrada.")
 
 
-@app.post("/products/<int:sku>/exit")
+@app.post("/products/<sku>/exit")
 def register_exit(sku):
     error = attempt(lambda: product_service.register_exit(
         sku, read_int(request.form.get("quantity"), "La cantidad")))
     return back_to_product(sku, error, "Salida registrada.")
 
 
-@app.post("/products/<int:sku>/name")
+@app.post("/products/<sku>/name")
 def change_name(sku):
     error = attempt(lambda: product_service.change_name(
         sku, read_name(request.form.get("name"))))
     return back_to_product(sku, error, "Nombre actualizado.")
 
 
-@app.post("/products/<int:sku>/price")
+@app.post("/products/<sku>/price")
 def change_price(sku):
     error = attempt(lambda: product_service.change_price(
         sku, read_price(request.form.get("price"))))
     return back_to_product(sku, error, "Precio actualizado.")
 
 
-@app.post("/products/<int:sku>/delete")
+@app.post("/products/<sku>/delete")
 def delete_product(sku):
     error = attempt(lambda: inventory_service.delete_product(sku))
     if error is None:

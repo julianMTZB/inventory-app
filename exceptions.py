@@ -9,3 +9,6 @@ class InsufficientStock(Exception):
 
 class ProductNotFound(Exception):
     pass
+
+class DuplicateSku(Exception):
+    pass 

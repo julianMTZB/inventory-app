@@ -1,6 +1,6 @@
 from models.product import Product
 import sqlite3
-from exceptions import ProductNotFound
+from exceptions import ProductNotFound, DuplicateSku
 
 """
 Falta establecer el ciclo de transacciones. 
@@ -50,10 +50,15 @@ class ProductRepo:
         raise ProductNotFound(f"Producto con SKU: '{sku}' NO encontrado")
                 
     def add_product(self, product):
-        with self.conn:
-            self.conn.execute("INSERT INTO products (sku, name, price, stock) VALUES (?,?,?,?)",
-                              (product.sku, product.name, product.price, product.stock))
-                       
+        try:
+            with self.conn:
+                self.conn.execute("INSERT INTO products (sku, name, price, stock) VALUES (?,?,?,?)",
+                                (product.sku, product.name, product.price, product.stock))
+        except sqlite3.IntegrityError as error:
+            if "UNIQUE" in str(error):
+                raise DuplicateSku(f"Ya existe un producto con el sku '{product.sku}'.")
+            raise
+                        
     def remove_product(self, sku):
         with self.conn:
             self.conn.execute("DELETE FROM products WHERE sku = ?", (sku,))
